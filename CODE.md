@@ -286,3 +286,193 @@ pub mod crypto_utils {
         format!("{:x}", hasher.finalize())
     }
 }
+// ====================== RUST-ON-WHEELS ENHANCEMENTS ======================
+// ⚡ Insert at the end of main.rs or lib.rs
+
+use std::sync::{Arc, Mutex};
+use rand::Rng;
+
+// ------------------ Configurable Mining Difficulty ------------------
+#[derive(Clone)]
+pub struct MiningConfig {
+    pub difficulty: usize, // Number of leading zeros
+}
+
+impl Default for MiningConfig {
+    fn default() -> Self {
+        MiningConfig { difficulty: 4 } // Matches current "0000"
+    }
+}
+
+// Modified Block to accept dynamic difficulty
+impl Block {
+    pub fn mine_with_config(&mut self, config: &MiningConfig) {
+        self.hash = self.calculate_hash();
+        let prefix = "0".repeat(config.difficulty);
+        while !self.hash.starts_with(&prefix) {
+            self.nonce += 1;
+            self.hash = self.calculate_hash();
+        }
+    }
+}
+
+// ------------------ Multi-Signature / Transaction Queue ------------------
+#[derive(Clone)]
+pub struct Transaction {
+    pub sender: String,
+    pub receivers: Vec<String>,
+    pub amount: u64,
+    pub signatures: Vec<Vec<u8>>, // each signature in bytes
+}
+
+impl Transaction {
+    pub fn new(sender: String, receivers: Vec<String>, amount: u64) -> Self {
+        Transaction {
+            sender,
+            receivers,
+            amount,
+            signatures: vec![],
+        }
+    }
+
+    pub fn add_signature(&mut self, sig: Vec<u8>) {
+        self.signatures.push(sig);
+    }
+
+    pub fn is_fully_signed(&self, required_sigs: usize) -> bool {
+        self.signatures.len() >= required_sigs
+    }
+}
+
+// Transaction queue for simulation
+#[derive(Default)]
+pub struct TransactionQueue {
+    pub queue: Vec<Transaction>,
+}
+
+impl TransactionQueue {
+    pub fn enqueue(&mut self, tx: Transaction) {
+        self.queue.push(tx);
+    }
+
+    pub fn dequeue(&mut self) -> Option<Transaction> {
+        if self.queue.is_empty() {
+            None
+        } else {
+            Some(self.queue.remove(0))
+        }
+    }
+}
+
+// ------------------ Pluggable Consensus Enum ------------------
+#[derive(Clone, Copy, Debug)]
+pub enum ConsensusType {
+    PoW,
+    PoS,
+    Hybrid,
+}
+
+pub struct ConsensusConfig {
+    pub consensus: ConsensusType,
+}
+
+impl Default for ConsensusConfig {
+    fn default() -> Self {
+        ConsensusConfig { consensus: ConsensusType::PoW }
+    }
+}
+
+// Example: patch mining logic based on consensus
+impl Block {
+    pub fn mine_dynamic(&mut self, consensus_cfg: &ConsensusConfig, mining_cfg: &MiningConfig) {
+        match consensus_cfg.consensus {
+            ConsensusType::PoW => self.mine_with_config(mining_cfg),
+            ConsensusType::PoS => {
+                // Simple placeholder: skip mining, assume validator chooses
+                println!("PoS: Validator selected, block accepted without mining");
+                self.hash = self.calculate_hash();
+            },
+            ConsensusType::Hybrid => {
+                // Mix PoW + PoS simulation
+                println!("Hybrid: Mining + validator check");
+                self.mine_with_config(mining_cfg);
+            }
+        }
+    }
+}
+
+// ------------------ Persistent State (JSON) ------------------
+pub fn save_blocks_to_file(blocks: &Vec<Block>, filename: &str) {
+    let json = serde_json::to_string_pretty(blocks).unwrap();
+    std::fs::write(filename, json).unwrap();
+}
+
+pub fn load_blocks_from_file(filename: &str) -> Vec<Block> {
+    if let Ok(data) = std::fs::read_to_string(filename) {
+        serde_json::from_str(&data).unwrap_or_default()
+    } else {
+        vec![]
+    }
+}
+
+// ------------------ AI-Enhanced Recommendations ------------------
+pub fn get_weighted_recommendations(progress: &Vec<CryptoTask>) -> Vec<String> {
+    let mut recs = get_recommended_tasks(progress); // base static recommendations
+    // Reorder based on pseudo-random "success rate impact"
+    let mut rng = rand::thread_rng();
+    recs.sort_by_key(|_| rng.gen::<u8>()); // Shuffle randomly to simulate weighted AI
+    recs
+}
+
+// ------------------ Simulated Security Checks ------------------
+pub fn validate_blockchain(blocks: &Vec<Block>) -> bool {
+    for i in 1..blocks.len() {
+        let prev = &blocks[i - 1];
+        let curr = &blocks[i];
+        if curr.previous_hash != prev.hash {
+            println!("Security Warning: Invalid previous_hash at block {}", i);
+            return false;
+        }
+        if curr.hash != curr.calculate_hash() {
+            println!("Security Warning: Invalid hash at block {}", i);
+            return false;
+        }
+    }
+    true
+}
+
+pub fn validate_transaction(tx: &Transaction) -> bool {
+    if tx.signatures.is_empty() {
+        println!("Warning: Transaction unsigned!");
+        return false;
+    }
+    true
+}
+
+// ------------------ CLI Task Mapping Improvement ------------------
+pub fn select_task_mapping(tasks: Vec<CryptoTask>) -> CryptoTask {
+    let task_strs: Vec<String> = tasks.iter().map(|t| format!("{:?}", t)).collect();
+    let selection = Select::new("Select next task:", task_strs)
+        .with_help_message("Tasks ordered by AI recommendation")
+        .prompt()
+        .unwrap();
+
+    // Map back to enum cleanly
+    tasks.into_iter().find(|t| format!("{:?}", t) == selection).unwrap()
+}
+
+// ------------------ Example Usage (Optional) ------------------
+// At the end of build_coin_flow(), you could integrate these enhancements:
+// let consensus_cfg = ConsensusConfig { consensus: ConsensusType::Hybrid };
+// let mining_cfg = MiningConfig { difficulty: 5 };
+// block.mine_dynamic(&consensus_cfg, &mining_cfg);
+
+// Save/load state
+// save_blocks_to_file(&blocks, "blocks.json");
+// let loaded_blocks = load_blocks_from_file("blocks.json");
+
+// Validate blockchain
+// validate_blockchain(&blocks);
+
+// Use weighted AI recommendations instead of static
+// let available_tasks = get_weighted_recommendations(&progress);
