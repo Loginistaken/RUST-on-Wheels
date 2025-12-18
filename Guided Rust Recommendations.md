@@ -1,3 +1,43 @@
+Rust-on-Wheels primarily creates test simulations, not real currency.
+
+What it does:
+
+Simulated Blocks & Blockchain
+
+Generates blocks with hashes, timestamps, previous hash links.
+
+Lets you mine blocks using Proof-of-Work or simulate Proof-of-Stake.
+
+Blocks and transactions are stored locally (e.g., JSON files).
+
+Simulated Wallets & Transactions
+
+Creates cryptographic wallets (public/private keys).
+
+Signs transactions locally.
+
+Supports multi-signature transactions for experimentation.
+
+Transactions can be queued and validated in the simulation.
+
+Diagnostics & AI Recommendations
+
+Guides you through building the blockchain, wallets, and transactions.
+
+Tracks progress with a “completion percentage”.
+
+Provides learning and testing feedback.
+
+What it does NOT do by default:
+
+It does not create real, spendable cryptocurrency that can be used on the internet.
+
+No network propagation to other computers by default.
+
+No interaction with public exchanges or blockchain networks.
+
+✅ Summary:
+Think of Rust-on-Wheels as a sandbox or lab environment for cryptocurrency development. You can experiment with blocks, wallets, mining, and transactions as if they were real—but it’s all simulated locally.
 Key Features
 
 1. Guided Rust Recommendations
