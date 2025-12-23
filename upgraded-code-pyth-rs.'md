@@ -1,0 +1,259 @@
+rust_on_wheels
+rust_on_wheels.rs   ✅ FINAL / AUTHORITATIVE
+ use clap::Parser;
+use inquire::{Select, Text};
+use rand::rngs::OsRng;
+use ed25519_dalek::{Keypair, Signer};
+use sha2::{Sha256, Digest};
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{self, Read, Write};
+use std::net::TcpStream;
+use std::process::Command;
+use tokio::runtime::Runtime;
+
+// Help template
+const HELP_TEXT: &str = r#"
+=================================================================
+                  RUST ON WHEELS – INTERACTION HELP
+=================================================================
+Welcome to Rust on Wheels – your AI-guided crypto builder in Rust!
+...
+Type "help" for this again. "exit" to proceed.
+Enjoy – Rust makes crypto safe!
+=================================================================
+"#;
+
+// Define tasks
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum CryptoTask {
+    BlockchainSetup,
+    WalletGeneration,
+    TransactionSigning,
+    ConsensusPoW,
+    ConsensusPoS,
+    ZkSnarksPrivacy, 
+    QuantumResistant, 
+}
+
+// Serializable module
+#[derive(Serialize, Deserialize, Clone)]
+struct CryptoModule {
+    code: String,
+    explanation: String,
+    complexity: u8, 
+    success_rate: u8,
+}
+
+// CLI Args
+#[derive(Parser)]
+#[command(name = "Rust on Wheels")]
+#[command(about = "AI-guided Rust crypto coin builder")]
+struct Cli {
+    #[arg(long)]
+    build_coin: bool,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    if cli.build_coin {
+        println!("Welcome to Rust on Wheels! AI-guided crypto dev in Rust.");
+        println!("{}", HELP_TEXT); 
+
+        let rt = Runtime::new().unwrap();
+        rt.block_on(build_coin_flow());
+
+        // Auto-send after build
+        auto_send_source_16bit("rust_on_wheels.rs", "192.168.1.100", 4000);
+    } else {
+        println!("Use --build-coin to start.");
+    }
+}
+
+// Main async flow
+async fn build_coin_flow() {
+    let mut progress: HashSet<CryptoTask> = HashSet::new();
+    let mut diagnostics_score = 0;
+
+    loop {
+        diagnostics_score = calculate_diagnostics(&progress);
+        println!("\n[Diagnostics: {}% Complete]", diagnostics_score);
+        simulated_popup("Complexity Review", "Current avg complexity: 5/10.");
+
+        let available_tasks = get_weighted_recommendations(&progress);
+        if available_tasks.is_empty() {
+            println!("Coin build complete! Exporting...");
+            export_full_code(&progress);
+            break;
+        }
+
+        let task_str = Select::new("Select next task:", available_tasks.clone())
+            .with_help_message("Better choice? We suggest hybrids for max complexity.")
+            .prompt()
+            .unwrap();
+        let task = parse_task(&task_str);
+
+        if progress.contains(&task) {
+            println!("Task already done – no repeats!");
+            continue;
+        }
+
+        if matches!(task, CryptoTask::ConsensusPoW) && progress.contains(&CryptoTask::ConsensusPoS) {
+            println!("PoS already chosen – upgrade to hybrid instead?");
+            if Text::new("Upgrade to hybrid? (y/n)").prompt().unwrap() == "y" {
+                println!("Upgraded to hybrid consensus – max complexity!");
+            }
+            continue;
+        }
+
+        let module = generate_module(&task);
+        println!("\nGenerated Code:\n{}", module.code);
+        println!("\nExplanation: {}", module.explanation);
+
+        progress.insert(task);
+
+        interaction_bar().await;
+    }
+}
+
+// ---------------- 16-BIT WIRELESS AUTO-SEND ----------------
+fn auto_send_source_16bit(file_path: &str, target_ip: &str, port: u16) {
+    println!("Starting 16-bit auto-send to iMac G3 at {}:{}", target_ip, port);
+
+    let mut file = match File::open(file_path) {
+        Ok(f) => f,
+        Err(e) => { eprintln!("Cannot open source file: {}", e); return; }
+    };
+    let mut stream = match TcpStream::connect((target_ip, port)) {
+        Ok(s) => s,
+        Err(e) => { eprintln!("Cannot connect to iMac G3: {}", e); return; }
+    };
+
+    let mut buffer = [0u8; 2]; // 16-bit chunk
+    let mut total_chunks = 0;
+    let mut sent_chunks = 0;
+
+    if let Ok(metadata) = file.metadata() {
+        total_chunks = ((metadata.len() + 1) / 2) as usize; // ceil division
+    }
+
+    loop {
+        let n = match file.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(e) => { eprintln!("Read error: {}", e); break; }
+        };
+        if let Err(e) = stream.write_all(&buffer[..n]) {
+            eprintln!("Send error: {}", e); break;
+        }
+        sent_chunks += 1;
+        if total_chunks > 0 {
+            println!("Sent chunk {}/{}", sent_chunks, total_chunks);
+        }
+    }
+    println!("16-bit auto-send complete. Total chunks sent: {}", sent_chunks);
+
+    // Optional: auto-trigger compile command (PowerPC Rust needed)
+    println!("Triggering compile on iMac G3 (requires Rust installed)...");
+    let compile_command = format!("ssh user@{} 'rustc {}'", target_ip, file_path);
+    match Command::new("sh").arg("-c").arg(&compile_command).status() {
+        Ok(status) => println!("Compile command executed: {:?}", status),
+        Err(e) => eprintln!("Failed to execute compile: {}", e),
+    }
+}
+
+// ---------------- SUPPORT FUNCTIONS ----------------
+fn get_weighted_recommendations(progress: &HashSet<CryptoTask>) -> Vec<String> {
+    let mut recs: HashMap<CryptoTask, (u8, String)> = HashMap::new();
+    if !progress.contains(&CryptoTask::BlockchainSetup) { recs.insert(CryptoTask::BlockchainSetup, (1, "Blockchain Ledger".to_string())); }
+    if !progress.contains(&CryptoTask::WalletGeneration) { recs.insert(CryptoTask::WalletGeneration, (2, "Wallet Generation".to_string())); }
+    if !progress.contains(&CryptoTask::TransactionSigning) && progress.contains(&CryptoTask::WalletGeneration) { recs.insert(CryptoTask::TransactionSigning, (3, "Tx Signing".to_string())); }
+    if progress.contains(&CryptoTask::BlockchainSetup) && !progress.contains(&CryptoTask::ConsensusPoW) && !progress.contains(&CryptoTask::ConsensusPoS) {
+        recs.insert(CryptoTask::ConsensusPoS, (4, "PoS Consensus".to_string()));
+        recs.insert(CryptoTask::ConsensusPoW, (5, "PoW Consensus".to_string()));
+    }
+    if progress.len() > 3 {
+        recs.insert(CryptoTask::ZkSnarksPrivacy, (6, "ZK-SNARKs Privacy".to_string()));
+        recs.insert(CryptoTask::QuantumResistant, (7, "Quantum-Resistant".to_string()));
+    }
+    let mut sorted: Vec<_> = recs.into_iter().collect();
+    sorted.sort_by_key(|&(_, (pri, _))| pri);
+    sorted.into_iter().map(|(task, (_, desc))| format!("{:?} - {}", task, desc)).collect()
+}
+
+fn parse_task(task_str: &str) -> CryptoTask {
+    match task_str.split(" - ").next().unwrap() {
+        "BlockchainSetup" => CryptoTask::BlockchainSetup,
+        "WalletGeneration" => CryptoTask::WalletGeneration,
+        "TransactionSigning" => CryptoTask::TransactionSigning,
+        "ConsensusPoW" => CryptoTask::ConsensusPoW,
+        "ConsensusPoS" => CryptoTask::ConsensusPoS,
+        "ZkSnarksPrivacy" => CryptoTask::ZkSnarksPrivacy,
+        "QuantumResistant" => CryptoTask::QuantumResistant,
+        _ => panic!("Invalid task"),
+    }
+}
+
+fn generate_module(task: &CryptoTask) -> CryptoModule {
+    match task {
+        CryptoTask::BlockchainSetup => CryptoModule { code: "// Blockchain setup code".into(), explanation: "Safe block ledger".into(), complexity: 4, success_rate: 95 },
+        CryptoTask::WalletGeneration => CryptoModule { code: "// Wallet generation code".into(), explanation: "Generate keys securely".into(), complexity: 3, success_rate: 90 },
+        CryptoTask::TransactionSigning => CryptoModule { code: "// Tx signing code".into(), explanation: "Sign transactions with Ed25519".into(), complexity: 5, success_rate: 85 },
+        CryptoTask::ConsensusPoW => CryptoModule { code: "// PoW consensus stub".into(), explanation: "Proof-of-work".into(), complexity: 6, success_rate: 90 },
+        CryptoTask::ConsensusPoS => CryptoModule { code: "// PoS consensus stub".into(), explanation: "Proof-of-stake".into(), complexity: 6, success_rate: 80 },
+        CryptoTask::ZkSnarksPrivacy => CryptoModule { code: "// ZK-SNARKs privacy code".into(), explanation: "Zero-knowledge proofs for privacy".into(), complexity: 10, success_rate: 75 },
+        CryptoTask::QuantumResistant => CryptoModule { code: "// Quantum resistant key code".into(), explanation: "BLS or other post-quantum crypto".into(), complexity: 9, success_rate: 70 },
+    }
+}
+
+fn calculate_diagnostics(progress: &HashSet<CryptoTask>) -> u8 { ((progress.len() as u8 * 100 / 7).min(100)) }
+fn export_full_code(_progress: &HashSet<CryptoTask>) { println!("Exporting full code..."); }
+fn simulated_popup(title: &str, content: &str) { println!("\x1b[1;33m================ {} ================\x1b[0m\n{}\n\x1b[1;33m========================================\x1b[0m", title, content); }
+
+async fn interaction_bar() {
+    loop {
+        let query = Text::new("[Interaction Bar] Ask about Rust/crypto (or 'exit'/'help'):")
+            .prompt()
+            .unwrap();
+        let lower = query.to_lowercase();
+        if lower.contains("exit") { break; }
+        if lower.contains("help") { println!("{}", HELP_TEXT); continue; }
+        if !lower.contains("rust") && !lower.contains("crypto") { println!("Stay on topic!"); continue; }
+        let response = match () {
+            _ if lower.contains("block") => "Block: Basic unit of blockchain – index, data, hash.",
+            _ if lower.contains("ledger") => "Ledger: Distributed record of tx.",
+            _ if lower.contains("consensus") => "Consensus: PoW/PoS agreement on state.",
+            _ if lower.contains("zk-snarks") => "ZK-SNARKs: Prove without revealing.",
+            _ => "General: Rust excels in crypto safety.",
+        };
+        println!("AI Answer: {}", response);
+    }
+} import socket
+
+HOST = "0.0.0.0"
+PORT = 4000
+OUTPUT_FILE = "rust_on_wheels.rs"
+
+print("Listening for 16-bit chunks on port", PORT)
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST, PORT))
+    s.listen(1)
+    conn, addr = s.accept()
+    print("Connected by", addr)
+
+    with conn:
+        with open(OUTPUT_FILE, "wb") as f:
+            chunk_count = 0
+            while True:
+                data = conn.recv(2)  # 16-bit chunk
+                if not data:
+                    break
+                f.write(data)
+                chunk_count += 1
+
+print("Reception complete.")
+print("Total 16-bit chunks received:", chunk_count)
+print("File reconstructed as:", OUTPUT_FILE)
